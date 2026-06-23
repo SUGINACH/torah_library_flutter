@@ -256,7 +256,7 @@ class _ItemDisplaySettingsDialogState extends State<ItemDisplaySettingsDialog>
                                 color: isSelected 
                                     ? palette.accent.withValues(alpha: 0.5)
                                     : Colors.transparent,
-                                width: isSelected ? 2 : 0,
+                                width: isSelected ? 2 : 0.5,
                               ),
                             ),
                             borderRadius: isSelected
