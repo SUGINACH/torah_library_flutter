@@ -26,6 +26,7 @@ class _ItemDisplaySettingsDialogState extends State<ItemDisplaySettingsDialog>
     with SingleTickerProviderStateMixin {
   
   late TabController _tabController;
+  late ScrollController _tabScrollController;
   
   // מצבים מקומיים להגדרות
   late double _fontSize;
@@ -42,6 +43,14 @@ class _ItemDisplaySettingsDialogState extends State<ItemDisplaySettingsDialog>
   late double _contrast;
   late bool _rtlMode;
   late TextDirection _textDirection;
+  
+  // רשימת טאבים
+  final List<Map<String, dynamic>> _tabs = [
+    {'icon': Icons.text_fields, 'text': 'טקסט וגופן'},
+    {'icon': Icons.palette, 'text': 'צבעים ומרקם'},
+    {'icon': Icons.aspect_ratio, 'text': 'פריסה ומרווחים'},
+    {'icon': Icons.visibility, 'text': 'נגישות ותצוגה'},
+  ];
   
   // רשימת גופנים זמינים
   final List<String> _availableFonts = [
@@ -77,8 +86,48 @@ class _ItemDisplaySettingsDialogState extends State<ItemDisplaySettingsDialog>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabScrollController = ScrollController();
     _initSettingsFromCurrent();
+    
+    // האזנה לשינויי טאב לגלילה אוטומטית
+    _tabController.addListener(_handleTabSelection);
+  }
+  
+  void _handleTabSelection() {
+    if (_tabController.indexIsChanging) return;
+    
+    // גלילה אוטומטית לטאב הנבחר כדי שיהיה תמיד גלוי
+    // חישוב מיקום מדויק יותר בהתבסס על מספר הטאבים
+    final tabWidth = 162.0; // רוחב משוער לכל טאב (160 + margin)
+    final selectedIndex = _tabController.index;
+    final totalTabs = _tabs.length;
+    
+    if (_tabScrollController.hasClients) {
+      // חישוב מיקום הגלילה כך שהטאב הנבחר יהיה במרכז
+      final scrollPosition = (totalTabs - 1 - selectedIndex) * tabWidth;
+      final viewportWidth = 500.0; // רוחב התצוגה המשוער
+      
+      double targetPosition = scrollPosition - (viewportWidth / 2) + (tabWidth / 2);
+      
+      // וידוא שהמיקום בתוך הטווח המותר
+      final maxScroll = _tabScrollController.position.maxScrollExtent;
+      targetPosition = targetPosition.clamp(0, maxScroll);
+      
+      _tabScrollController.animateTo(
+        targetPosition,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+  
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabSelection);
+    _tabController.dispose();
+    _tabScrollController.dispose();
+    super.dispose();
   }
   
   void _initSettingsFromCurrent() {
@@ -147,19 +196,138 @@ class _ItemDisplaySettingsDialogState extends State<ItemDisplaySettingsDialog>
           height: 550,
           child: Column(
             children: [
-              // טאבים עליונים
-              TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                labelColor: palette.accent,
-                unselectedLabelColor: palette.textSecondary,
-                indicatorColor: palette.accent,
-                tabs: [
-                  Tab(icon: Icon(Icons.text_fields), text: 'טקסט וגופן'),
-                  Tab(icon: Icon(Icons.palette), text: 'צבעים ומרקם'),
-                  Tab(icon: Icon(Icons.aspect_ratio), text: 'פריסה ומרווחים'),
-                  Tab(icon: Icon(Icons.visibility), text: 'נגישות ותצוגה'),
-                ],
+              // טאבים עליונים בעיצוב Chrome עם קיעורים
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: palette.borderColor,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  controller: _tabScrollController,
+                  scrollDirection: Axis.horizontal,
+                  reverse: true, // גלילה מימין לשמאל (RTL)
+                  child: Row(
+                    children: List.generate(_tabs.length, (index) {
+                      final tab = _tabs[index];
+                      final isSelected = _tabController.index == index;
+                      
+                      return GestureDetector(
+                        onTap: () => _tabController.animateTo(index),
+                        child: Container(
+                          width: 160,
+                          height: 52,
+                          margin: const EdgeInsets.only(left: 2),
+                          decoration: BoxDecoration(
+                            gradient: isSelected
+                                ? LinearGradient(
+                                    colors: [
+                                      palette.background,
+                                      palette.background.withValues(alpha: 0.95),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      palette.background.withValues(alpha: 0.7),
+                                      palette.background.withValues(alpha: 0.5),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                            border: Border(
+                              left: BorderSide(
+                                color: isSelected 
+                                    ? palette.accent.withValues(alpha: 0.3)
+                                    : palette.borderColor.withValues(alpha: 0.5),
+                                width: isSelected ? 2 : 1,
+                              ),
+                              right: BorderSide(
+                                color: isSelected 
+                                    ? palette.accent.withValues(alpha: 0.3)
+                                    : palette.borderColor.withValues(alpha: 0.5),
+                                width: isSelected ? 2 : 1,
+                              ),
+                              top: BorderSide(
+                                color: isSelected 
+                                    ? palette.accent.withValues(alpha: 0.5)
+                                    : Colors.transparent,
+                                width: isSelected ? 2 : 0,
+                              ),
+                            ),
+                            borderRadius: isSelected
+                                ? const BorderRadius.vertical(top: Radius.circular(8))
+                                : const BorderRadius.vertical(top: Radius.circular(4)),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, -2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Stack(
+                            children: [
+                              // אפקט קיעור פנימי לטאב לא נבחר
+                              if (!isSelected)
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(4),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.05),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                          spreadRadius: -1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              // תוכן הטאב
+                              Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      tab['icon'] as IconData,
+                                      size: 18,
+                                      color: isSelected 
+                                          ? palette.accent 
+                                          : palette.textSecondary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      tab['text'] as String,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isSelected 
+                                            ? FontWeight.w600 
+                                            : FontWeight.normal,
+                                        color: isSelected 
+                                            ? palette.accent 
+                                            : palette.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               
