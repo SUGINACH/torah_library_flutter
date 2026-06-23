@@ -81,6 +81,7 @@ import 'viewers/audio_transcription_panel.dart';
 import 'viewers/hebrew_calendar_widget.dart';
 import 'viewers/tag_plus/tag_plus_widget.dart';
 import 'dialogs/update_progress_dialog.dart';
+import 'dialogs/item_display_settings_dialog.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MainWindow
@@ -1041,6 +1042,17 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
             ],
           ),
           // ── Theme dialog ─────────────────────────────
+          _IconBtn(
+            tooltip: 'הגדרות תצוגה מתקדמות',
+            icon: Icons.display_settings, // אייקון הגדרות תצוגה
+            palette: palette,
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (_) => const ItemDisplaySettingsDialog(),
+              );
+            },
+          ),
           _IconBtn(
             tooltip: 'הגדרות מראה',
             icon: Icons.settings, // אייקון גלגל שיניים
