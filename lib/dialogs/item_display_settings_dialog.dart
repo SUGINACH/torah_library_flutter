@@ -919,10 +919,4 @@ class _ItemDisplaySettingsDialogState extends State<ItemDisplaySettingsDialog>
   bool _isLightColor(Color color) {
     return color.computeLuminance() > 0.5;
   }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 }
